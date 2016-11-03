@@ -42,6 +42,7 @@ void rule_list::createDAG(){ //duck O(n^2)
     int num_overlap = 0;
     int num_nest = 0;
     int num_cross = 0;
+    //duck DEC. 3统计各种
     for (int i = 1; i < list.size(); ++i){
         vector<r_rule> residual;
         residual.push_back(r_rule(list[i]));
