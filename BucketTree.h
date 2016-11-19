@@ -73,8 +73,7 @@ class bucket_tree {
 
   public:
     //proactive
-    vector<bucket *> pro_cache(int memory);
-
+    void obtain_bucket_weight(const string & tracefile_str);
 
 };
 

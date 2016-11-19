@@ -593,7 +593,19 @@ void bucket_tree::search_test(const string & tracefile_str) {
     cout << "Search testing finished ... " << endl;
 }
 
-
-
+//proactive DEC.19 duck
+void bucket_tree::obtain_bucket_weight(const string & tracefile_str) {
+	ifstream file;
+	file.open(tracefile_str.c_str());
+	string sLine = "";
+	getline(file, sLine);
+	while (!file.eof()) {
+		addr_5tup packet(sLine, false);
+		auto result = search_bucket(packet, root);
+		result.first->weight++;
+		getline(file, sLine);
+	}
+	file.close();
+}
 
 

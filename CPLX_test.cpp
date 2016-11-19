@@ -29,13 +29,8 @@ void set_bucket_hit(bucket *bk){// ???
     }
     return;
 }
-/*
-void set_rule_hit(rule_list *ptr, int size){
-	for (int i = 0; i < size; i++)
-		ptr->list[i].hit = true;
-}
-*/
-int main(){
+
+int HAHA(){
     ofstream out;
     out.open("CPLX_test_results", ofstream::app);
 

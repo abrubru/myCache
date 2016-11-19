@@ -14,7 +14,7 @@ typedef vector<uint32_t>::iterator Iter_id;
 typedef vector<bucket*>::iterator Iter_son;
 
 
-bucket::bucket():hit(false), parent(NULL), max_gain(0) {}
+bucket::bucket():hit(false), parent(NULL), max_gain(0), weight(0) {}
 
 bucket::bucket(const bucket & bk) : b_rule(bk) {
     sonList = vector<bucket*>();
@@ -22,6 +22,7 @@ bucket::bucket(const bucket & bk) : b_rule(bk) {
     hit = false;
     parent = NULL;
     max_gain = 0;
+    weight = 0;
 }
 
 bucket::bucket(const string & b_str, const rule_list * rL) : b_rule(b_str) {
@@ -31,6 +32,7 @@ bucket::bucket(const string & b_str, const rule_list * rL) : b_rule(b_str) {
     hit = false;
     parent = NULL;
     max_gain = 0;
+    weight = 0;
 }
 
 pair<double, size_t> bucket::split(const vector<size_t> & dim , rule_list *rList) { //very important

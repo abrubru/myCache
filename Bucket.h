@@ -30,6 +30,10 @@ class bucket: public b_rule {
     void cleanson();
     void clearHitFlag();
     string get_str() const;
+
+    //DEC. 19 DUCK
+  public:
+    int weight; //命中该bucket的次数
 };
 
 #endif

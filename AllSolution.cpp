@@ -17,9 +17,35 @@ void Solutions::CacheFlow(int memory, rule_list * rL, int weight){
 	cout<<endl<<"cache weight: "<<cache_weight<<"    radio: "<<double(cache_weight) /weight<<endl;
 }
 
-void Solutions::CAB(int memory, rule_list * rL, int weight){
+void set_bucket_hit2(bucket *bk){// ???
+	if (bk->sonList.empty()){
+        if (!bk->related_rules.empty())
+            bk->hit = true;
+    }
+	else{
+        for (auto iter = bk->sonList.begin(); iter != bk->sonList.end(); iter++)
+            set_bucket_hit2(*iter);
+    }
+    return;
+}
+
+void Solutions::CAB(int memory, rule_list * rL, int weight, string trace){
 	cout<<endl<<"					CAB :"<<endl;
 	int cache_weight = 0;
+	bucket_tree bTree(*rL, 50, false, 0);
+	bTree.pre_alloc();
+	set_bucket_hit2(bTree.root);
+	bTree.merge_bucket_CPLX_test(bTree.root);
+	bTree.obtain_bucket_weight(trace);
+	cab::pro_cache_set cab_cache(&bTree, memory);
+	cab_cache.cal_cache_set();
+	cout<<"buckets table:  "<<cab_cache.cache_buckets.size()<<'	'<<"rules table: "<<cab_cache.cache_rules.size()<<endl;
+	cout<<"rules table: "<<endl;
+	for(auto &x : cab_cache.cache_rules){
+		cout<<x<<" ";
+	}
+	for(auto x : cab_cache.cache_buckets) cache_weight += x.weight;
+	cout<<endl<<"cache weight: "<<cache_weight<<"    radio: "<<double(cache_weight) /weight<<endl;
 
 }
 

@@ -14,7 +14,7 @@
 #include "CacheFlow.hpp"
 */
 
-/*
+
 int main() {
     // init log, rule list, randomness
     srand (time(NULL));
@@ -29,12 +29,16 @@ int main() {
     Solutions ss;
     int cache_size = 0;
     std::cin>>cache_size;
-    ss.CacheFlow(cache_size, rList, total_weight);      //test CacheFlow
-    ss.myCache(cache_size, rList, total_weight);        //test MyCache
+    ss.CacheFlow(cache_size, rList, total_weight);       //test CacheFlow
+    ss.myCache(cache_size, rList, total_weight);         //test MyCache
+    ss.CAB(cache_size, rList, total_weight, tracefile);                 //test CAB
+    //CAB
+    /***** generate bTree ******/
+
     return 0;
 }
 
-*/
+
 
 
 
