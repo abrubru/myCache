@@ -1,5 +1,5 @@
 UnitTest.d: ../UnitTest.cpp ../stdafx.h ../Address.hpp ../Rule.hpp \
- ../RuleList.h
+ ../RuleList.h ../CacheFlow.hpp ../AllSolution.h ../myCache.hpp
 
 ../stdafx.h:
 
@@ -8,3 +8,9 @@ UnitTest.d: ../UnitTest.cpp ../stdafx.h ../Address.hpp ../Rule.hpp \
 ../Rule.hpp:
 
 ../RuleList.h:
+
+../CacheFlow.hpp:
+
+../AllSolution.h:
+
+../myCache.hpp:

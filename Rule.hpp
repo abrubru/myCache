@@ -24,6 +24,7 @@ class p_rule {
     inline p_rule(const p_rule &);
     inline p_rule(const std::string &, bool = false);
     inline bool operator==(const p_rule &) const;
+    inline bool operator<(const p_rule &) const;
 
     inline bool dep_rule(const p_rule &) const;
     inline bool packet_hit(const addr_5tup &) const;
@@ -127,7 +128,6 @@ inline p_rule::p_rule(const string & rule_str, bool test_bed) {
     vector<string> temp;
     boost::split(temp, rule_str, boost::is_any_of("\t"));
     temp[0].erase(0,1);
-    cout<<temp[0]<<" "<<temp[1]<<endl;
     hostpair[0] = pref_addr(temp[0]);
     hostpair[1] = pref_addr(temp[1]);
     if (test_bed) {
@@ -151,6 +151,9 @@ inline bool p_rule::operator==(const p_rule & rhs) const {
     if (!(portpair[1] == rhs.portpair[1]))
         return false;
     return true;
+}
+inline bool p_rule::operator<(const p_rule & rhs) const {//duck DEC. 3
+    return hostpair[0].pref <rhs.hostpair[0].pref;
 }
 
 /* member fuctions
@@ -422,9 +425,11 @@ inline int r_rule::overlap (const r_rule & rr) const { // check whether another 
         if (!addrs[i].overlap(rr.addrs[i]))
             return NONE;
     }
-    //在这里，只考虑sec_ip 和 dst_ip；
-    if(addrs[0].range[0] >= rr.addrs[0].range[0] && addrs[0].range[1] <= rr.addrs[0].range[1]) return NEST;
-    if(addrs[1].range[0] >= rr.addrs[1].range[0] && addrs[1].range[1] <= rr.addrs[1].range[1]) return NEST;
+    //在这里，只考虑sec_ip 和 dst_ip，只考慮i包含j，這裏默認j優先級高於i；
+    if(addrs[0].range[0] <= rr.addrs[0].range[0] && addrs[0].range[1] >= rr.addrs[0].range[1] &&
+    		addrs[1].range[0] <= rr.addrs[1].range[0] && addrs[1].range[1] >= rr.addrs[1].range[1] &&
+			addrs[2].range[0] <= rr.addrs[2].range[0] && addrs[2].range[1] >= rr.addrs[2].range[1] &&
+    		addrs[3].range[0] <= rr.addrs[3].range[0] && addrs[3].range[1] >= rr.addrs[3].range[1]) return NEST;
     return CROSS;
 }
 
@@ -448,25 +453,25 @@ inline b_rule r_rule::cast_to_bRule() const {
 
 inline int range_minus(vector<r_rule> & toMinusRules, const r_rule & mRule){
     int overlap = NONE;
-    for (auto iter = toMinusRules.begin(); iter != toMinusRules.end(); ){
+    for (auto iter = toMinusRules.begin(); iter != toMinusRules.end(); ++iter){
         if (iter->overlap(mRule) == NEST){
-            auto result = iter->minus(mRule);
+            /*auto result = iter->minus(mRule);
             iter = toMinusRules.erase(iter);
             for (auto & mR : result)
                 iter = toMinusRules.insert(iter, mR);
-            iter += result.size();
+            iter += result.size();*/
             overlap = NEST;
         }else if(iter->overlap(mRule) == CROSS){
-        	 auto result = iter->minus(mRule);
+        	 /*auto result = iter->minus(mRule);
         	 iter = toMinusRules.erase(iter);
         	 for (auto & mR : result)
         	 iter = toMinusRules.insert(iter, mR);
-        	 iter += result.size();
+        	 iter += result.size();*/
         	 overlap = CROSS;
         }
-        else{
+        /*else{
             ++iter;
-        }
+        }*/
     }
     return overlap;
 }

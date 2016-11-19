@@ -4,14 +4,26 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 CPP_SRCS += \
+../AllSolution.cpp \
+../Bucket.cpp \
+../BucketTree.cpp \
+../CPLX_test.cpp \
 ../RuleList.cpp \
 ../UnitTest.cpp 
 
 OBJS += \
+./AllSolution.o \
+./Bucket.o \
+./BucketTree.o \
+./CPLX_test.o \
 ./RuleList.o \
 ./UnitTest.o 
 
 CPP_DEPS += \
+./AllSolution.d \
+./Bucket.d \
+./BucketTree.d \
+./CPLX_test.d \
 ./RuleList.d \
 ./UnitTest.d 
 
