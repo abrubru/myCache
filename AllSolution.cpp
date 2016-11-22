@@ -32,7 +32,7 @@ void set_bucket_hit2(bucket *bk){// ???
 void Solutions::CAB(int memory, rule_list * rL, int weight, string trace){
 	cout<<endl<<"					CAB :"<<endl;
 	int cache_weight = 0;
-	bucket_tree bTree(*rL, 50, false, 0);
+	bucket_tree bTree(*rL, 20, false, 0);
 	bTree.pre_alloc();
 	set_bucket_hit2(bTree.root);
 	bTree.merge_bucket_CPLX_test(bTree.root);
@@ -41,20 +41,30 @@ void Solutions::CAB(int memory, rule_list * rL, int weight, string trace){
 	cab_cache.cal_cache_set();
 	cout<<"buckets table:  "<<cab_cache.cache_buckets.size()<<'	'<<"rules table: "<<cab_cache.cache_rules.size()<<endl;
 	cout<<"rules table: "<<endl;
+	int allrelated_weight = 0;
 	for(auto &x : cab_cache.cache_rules){
+		allrelated_weight += rL->list[x].weight;
 		cout<<x<<" ";
 	}
 	for(auto x : cab_cache.cache_buckets) cache_weight += x.weight;
-	cout<<endl<<"cache weight: "<<cache_weight<<"    radio: "<<double(cache_weight) /weight<<endl;
+	cout<<endl<<"cache weight: "<<cache_weight<<"    radio: "<<double(cache_weight) /weight<<"   all relative weight: "<<allrelated_weight<<endl;
+
+	//test fault
+	for(auto bucket: cab_cache.cache_buckets){
+		int weight = 0;
+		for(auto x : bucket.cBucket->related_rules) weight += rL->list[x].weight;
+		if(weight <bucket.weight) cout<<"fault :" <<weight<<"	"<<bucket.weight<<"	"<<endl;
+	}
 
 }
 
 //myCache
-void Solutions::myCache(int memory, rule_list * rL, int weight){
+void Solutions::myCache(int memory, rule_list * rL, int weight, string trace){
 	cout<<endl<<"					MyCache :"<<endl;
 	int cache_weight = 0;
 	mycache::mixed_set my_cache(memory, rL);
-	my_cache.cal_mixed_set();
+	my_cache.cal_mixed_set();   //计算proactive_cache
+	int cover_weight = my_cache.cal_cover_table_weight(trace);//计算cover_set table中可表征的流量
 	cout<<"rules table:  "<<my_cache.cache_rules.size()<<endl;
 	cout<<"cover-set nested table: "<<my_cache.cover_rules_nested.size()<<'	'<<"cover-set crossed table: "<<my_cache.cover_rules_crossed.size()<<endl;
 	cout<<"rules table: "<<endl;
@@ -65,6 +75,10 @@ void Solutions::myCache(int memory, rule_list * rL, int weight){
 	cout<<endl<<"cover-set nested table: "<<endl;
 	for(auto &x : my_cache.cover_rules_nested) cout<<x<<" ";
 	cout<<endl<<"cover-set crossed table: "<<endl;
-	for(auto &x : my_cache.cover_rules_crossed) cout<<x<<" ";
-	cout<<endl<<"cache weight: "<<cache_weight<<"    radio: "<<double(cache_weight) /weight<<endl;
+	/*for(auto &x : my_cache.cover_rules_crossed){
+		cout<<"ruleID:  "<<x<<endl;
+		cout<<"weight:  "<<rL->list[x].weight<<endl;
+
+	}*/
+	cout<<endl<<"cache weight: "<<cache_weight + cover_weight<<"    radio: "<<double(cache_weight+ cover_weight) /weight<<endl;
 }

@@ -264,8 +264,8 @@ inline addr_5tup::addr_5tup(const string & str, double ts) {
     timestamp = ts;
     proto = true;
     for (uint32_t i = 0; i < 4; i++) {
-        //addrs[i] = boost::lexical_cast<uint32_t>(temp[i]);
-    	addrs[i] = atoi(temp[i].c_str());
+        addrs[i] = boost::lexical_cast<uint32_t>(temp[i]);
+    	//addrs[i] = atoi(temp[i].c_str());
     }
 }
 

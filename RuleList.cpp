@@ -179,9 +179,12 @@ int rule_list::obtain_weight(string trace){//DEC.16 obtain rule's weight
 	string sLine = "";
 	getline(file, sLine);
 	while (!file.eof()) {
-		vector<string> temp;
+		/*vector<string> temp;
 		boost::split(temp, sLine, boost::is_any_of("\t"));
-		list[atoi(temp[6].c_str())].weight++;
+		list[atoi(temp[6].c_str())].weight++;*/
+		addr_5tup packet(sLine, false);
+		int x = linear_search(packet);
+		if(x != -1) list[x].weight++;
 		weight++;
 		getline(file, sLine);
 	}
@@ -203,4 +206,23 @@ void rule_list::clearHitFlag() {
         occupancy[idx] = 0;
         list[idx].hit = false;
     }
+}
+
+int rule_list::test_trace(string trace) {
+	int weight = 0;
+	ifstream file;
+	file.open(trace.c_str());
+	string sLine = "";
+	getline(file, sLine);
+	while (!file.eof()) {
+		int num = 0;
+		addr_5tup packet(sLine, false);
+		for (size_t i = 0; i < list.size(); ++i) {
+		   if (list[i].packet_hit(packet)) num++;
+		}
+		if (num > 1) weight++;
+		getline(file, sLine);
+	}
+	file.close();
+	return weight;
 }

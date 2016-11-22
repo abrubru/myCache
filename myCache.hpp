@@ -1,16 +1,34 @@
 #ifndef MY_CACHE_H
 #define MY_CACHE_H
 
+using std::ifstream;
+using std::ofstream;
+using std::string;
+
 #include "stdafx.h"
 #include "Address.hpp"
 #include "Rule.hpp"
 #include "RuleList.h"
+#include "Bucket.h"
+#include "BucketTree.h"
 #include <algorithm>
-#include <unordered_set>
+#include <set>
 using std::set;
 
 namespace mycache{
 
+	class split_nodes{ //切分子节点多的规则
+	public:
+		rule_list *rL;
+	public:
+		split_nodes(rule_list *r, int maxs, int splited){
+			for(int i = 0; i < r->list.size(); i++){
+				if(r->mncross[i] + r->mnested[i] > maxs){ //split
+					//bucket_tree bTree(*rL, 20, false, 0);
+				}
+			}
+		}
+	};
 	class rule_info {
 	public:
 		uint32_t idx;
@@ -112,6 +130,39 @@ namespace mycache{
 				}
 			}
 			//cout<<cnt<<endl;
+		}
+
+		int cal_cover_table_weight(string trace){
+			int cover_weight = 0;
+			ifstream file;
+			file.open(trace.c_str());
+			string sLine = "";
+			getline(file, sLine);
+			while (!file.eof()) {
+				addr_5tup packet(sLine, false);
+				int x = rList->linear_search(packet);
+				if(x != -1 && cover_rules_crossed.find(x) != cover_rules_crossed.end()){ //可以表征流量的,set，优先级已经排好
+					for(auto iterrule : cache_rules){
+						//cout<<"haha"<<endl;
+						if(rList->list[iterrule].packet_hit(packet)){
+							cover_weight++;
+							break;
+						}
+					}
+				}
+				getline(file, sLine);
+			}
+			file.close();
+			//test
+			set<int> overlapped_rules;
+			for(auto x : cache_rules){
+				for(auto y : cover_rules_crossed){
+					if(rList->mncross[x].find(y) != rList->mncross[x].end()) overlapped_rules.insert(x);
+				}
+			}
+			cout<<"overlapped_rules:  "<<overlapped_rules.size()<<"cover_weight:  "<<cover_weight<<endl;
+			for(auto x : overlapped_rules) cout<<x<<" ";
+			return cover_weight;
 		}
 	};
 }

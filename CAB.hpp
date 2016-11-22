@@ -9,7 +9,8 @@ namespace cab{
 	class cache_bucket{
 	public:
 		bucket* cBucket; //bucket
-		int weight;     //名字该bucket的数据包
+		std::set<uint32_t> related_rules; //bucket中的related_rules是vector，不好删除
+		int weight;     //命中该bucket的数据包
 		int cost;         //该bucket的花费
 		bool operator<(const cache_bucket & another) const {
 			return (double)weight / cost < (double)another.weight / another.cost;
@@ -17,6 +18,7 @@ namespace cab{
 	public:
 		cache_bucket(bucket *b){
 			cBucket = b;
+			for(auto x : b->related_rules) related_rules.insert(x);
 			weight = b->weight;
 			cost = b->related_rules.size() + 1;
 		}
@@ -40,6 +42,7 @@ namespace cab{
 			else for(auto bson  : root->sonList) obtain_all_buckets(bson);
 		}
 		void cal_cache_set(){
+			cout<<candi_buckets.size()<<'	'<<total_memory<<endl;
 			while(!candi_buckets.empty()){
 				std::make_heap(candi_buckets.begin(), candi_buckets.end());
 				std::pop_heap(candi_buckets.begin(), candi_buckets.end());
@@ -47,11 +50,13 @@ namespace cab{
 				candi_buckets.pop_back();
 				if(cache_buckets.size() + cache_rules.size() + next_cache.cost > total_memory) continue;  //装不下
 				//能装下
+				//cout<<(double)next_cache.weight/next_cache.cost<<" "<<next_cache.cost<<endl;
 				cache_buckets.push_back(next_cache); //bucket进buckets table
-				for(auto rule : next_cache.cBucket->related_rules){
+				for(auto rule : next_cache.related_rules){
 					cache_rules.insert(rule); //rule进rules table
 					for(auto iterbucket = candi_buckets.begin(); iterbucket != candi_buckets.end(); iterbucket++){
-						for(auto x : iterbucket->cBucket->related_rules) if(x == rule) iterbucket->cost--;   //更新rule插入影响的bucket
+						auto deletediter = iterbucket->related_rules.find(rule);
+						if(deletediter != iterbucket->related_rules.end()) iterbucket->related_rules.erase(deletediter);
 					}
 				}
 			}

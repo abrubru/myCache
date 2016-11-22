@@ -21,6 +21,7 @@ bucket_tree::bucket_tree(rule_list & rL, uint32_t thr, bool test_bed, size_t pa_
     thres_soft = thr*2;
     rList = &rL;
     root = new bucket(); // full address space
+
     for (uint32_t i = 0; i < rL.list.size(); i++)
         root->related_rules.insert(root->related_rules.end(), i);
 
@@ -56,7 +57,7 @@ pair<bucket *, int> bucket_tree::search_bucket(const addr_5tup& packet, bucket *
     } else {
         buck->hit = true;
         int rule_id = -1;
-
+        std::sort(buck->related_rules.begin(), buck->related_rules.end());   //匹配优先级最高的才能break;
         for (auto iter = buck->related_rules.begin(); iter != buck->related_rules.end(); ++iter) {
             if (rList->list[*iter].packet_hit(packet)) {
                 rList->list[*iter].hit = true;
@@ -599,12 +600,15 @@ void bucket_tree::obtain_bucket_weight(const string & tracefile_str) {
 	file.open(tracefile_str.c_str());
 	string sLine = "";
 	getline(file, sLine);
+	int fault = 0;
 	while (!file.eof()) {
 		addr_5tup packet(sLine, false);
 		auto result = search_bucket(packet, root);
-		result.first->weight++;
+		if(result.second == -1) fault++;
+		else result.first->weight++;
 		getline(file, sLine);
 	}
+	cout<<"fault:  "<<fault<<endl;
 	file.close();
 }
 

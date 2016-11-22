@@ -6,7 +6,7 @@
 class Solutions{
 public:
 	void CacheFlow(int memory, rule_list * rL, int weight);  //CacheFlow
-	void myCache(int memory, rule_list * rL, int weight); //myCache
+	void myCache(int memory, rule_list * rL, int weight, string trace); //myCache
 	void CAB(int memory, rule_list *rL, int weight, string trace);  //CAB
 };
 #endif

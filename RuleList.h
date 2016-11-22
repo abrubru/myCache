@@ -43,9 +43,10 @@ private:
 
 public:
     void createDAG();
-    void obtain_dep();
-    void obtain_cover();
-    int obtain_weight(string trace);
+    void obtain_dep();  //duck
+    void obtain_cover();  //duck
+    int obtain_weight(string trace); //duck
+    int test_trace(string trace); //duck
 
     void clearHitFlag();
 
