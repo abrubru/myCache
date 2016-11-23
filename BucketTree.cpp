@@ -15,22 +15,24 @@ bucket_tree::bucket_tree() {
     thres_soft = 0;
     tree_depth = 0;
 }
-
-bucket_tree::bucket_tree(rule_list & rL, uint32_t thr, bool test_bed, size_t pa_no ) {
+bucket_tree::bucket_tree(rule_list & rL, uint32_t thr, bool test_bed, size_t pa_no, int i ) {
     thres_hard = thr;
     thres_soft = thr*2;
     rList = &rL;
     root = new bucket(); // full address space
-
-    for (uint32_t i = 0; i < rL.list.size(); i++)
-        root->related_rules.insert(root->related_rules.end(), i);
+    if(i == -1){
+		for (uint32_t i = 0; i < rL.list.size(); i++)
+			root->related_rules.insert(root->related_rules.end(), i);
+    }else{
+    	b_rule b = rL.list[i].cast_to_bRule();
+    	for(int i = 0; i < 4; i++) root->addrs[i] = b.addrs[i];
+    	cout<<"crossed: "<<rL.mncross[i].size()<<"nested: "<<rL.mnested[i].size()<<endl;
+    	for (auto x : rL.children[i])
+    		root->related_rules.insert(root->related_rules.end(), x);
+    	root->related_rules.push_back(i);//把自己装进去
+    }
 
     gen_candi_split(test_bed);
-    //DEC.17 test candidate
-    /*for(int i  = 0; i < candi_split.size(); i++){
-    	for(auto j : candi_split[i]) cout<<j<<' ';
-    	cout<<endl;
-    }*/
     splitNode_fix(root);
 
     pa_rule_no = pa_no;
@@ -143,8 +145,8 @@ void bucket_tree::gen_candi_split(bool test_bed, size_t cut_no) {
 
 void bucket_tree::splitNode_fix(bucket * ptr) {
     double cost = ptr->related_rules.size();
-   //cout<<cost<<endl;
-    if (cost < thres_soft){    //节点规则<N,停止切割
+
+    if (cost <= thres_soft){    //节点规则<N,停止切割
     	return;
     }
 
@@ -595,20 +597,19 @@ void bucket_tree::search_test(const string & tracefile_str) {
 }
 
 //proactive DEC.19 duck
-void bucket_tree::obtain_bucket_weight(const string & tracefile_str) {
+void bucket_tree::obtain_bucket_weight(const string & tracefile_str, int ruleId) {
 	ifstream file;
 	file.open(tracefile_str.c_str());
 	string sLine = "";
 	getline(file, sLine);
-	int fault = 0;
 	while (!file.eof()) {
 		addr_5tup packet(sLine, false);
-		auto result = search_bucket(packet, root);
-		if(result.second == -1) fault++;
-		else result.first->weight++;
 		getline(file, sLine);
+		if(ruleId != -1 && !rList->list[ruleId].packet_hit(packet)) continue;  //不匹配原规则直接return
+		auto result = search_bucket(packet, root);
+		if(result.second != -1)
+			result.first->weight++;
 	}
-	cout<<"fault:  "<<fault<<endl;
 	file.close();
 }
 

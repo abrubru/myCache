@@ -11,6 +11,7 @@ using std::string;
 #include "RuleList.h"
 #include "Bucket.h"
 #include "BucketTree.h"
+#include "CAB.hpp"
 #include <algorithm>
 #include <set>
 using std::set;
@@ -20,11 +21,16 @@ namespace mycache{
 	class split_nodes{ //切分子节点多的规则
 	public:
 		rule_list *rL;
+		vector<pair<int, bucket_tree*> > mbtree;
 	public:
-		split_nodes(rule_list *r, int maxs, int splited){
+		split_nodes(rule_list *r, int splited_max, int splited_keep, string trace){
+			rL = r;
+			mbtree.clear();
 			for(int i = 0; i < r->list.size(); i++){
-				if(r->mncross[i] + r->mnested[i] > maxs){ //split
-					//bucket_tree bTree(*rL, 20, false, 0);
+				if(r->mncross[i].size() + r->mnested[i].size() > splited_max){ //split
+					bucket_tree *bTree = new bucket_tree(*r, splited_keep, false, 0, i);
+					bTree->obtain_bucket_weight(trace, i);
+					mbtree.push_back(std::make_pair(i, bTree));
 				}
 			}
 		}
@@ -58,80 +64,136 @@ namespace mycache{
 
 	class mixed_set {
 	public:
+		vector<rule_info> candi_heap; //候选堆
 		set<uint32_t> cache_rules;
 		set<uint32_t> cover_rules_nested;
 		set<uint32_t> cover_rules_crossed;
 
+		vector<cab::cache_bucket> candi_buckets; //候选bucket
+		vector<cab::cache_bucket> cache_buckets;
+
 	private:
 		int total_memory;
 		rule_list * rList;
-
 	public:
-		mixed_set(int memory, rule_list * rL) {
+		mixed_set(int memory, rule_list * rL, bool split, string trace) {
 			total_memory = memory;
 			rList = rL;
-		}
-
-		void cal_mixed_set() {
-			//std::map<uint32_t, rule_info> candi_heap;   //候选堆
-			//std::map<rule_info, uint32_t> candi_heap;//候选堆
-			vector<rule_info> candi_heap;
-			for (int i = 0; i < rList->list.size(); ++i) {
-				rule_info a(i, rList);
-				candi_heap.push_back(a);  //DEC.14 cover-set
+			if(!split){
+				for (int i = 0; i < rList->list.size(); ++i) {
+					rule_info a(i, rList);
+					candi_heap.push_back(a);  //DEC.14 cover-set
+				}
+			}else{ //split
+				int splited_max = total_memory/2;
+				int splited_keep = total_memory/10;
+				split_nodes sp = split_nodes(rL, splited_max, splited_keep, trace);
+				for(auto iterbt = sp.mbtree.begin(); iterbt != sp.mbtree.end(); iterbt++){
+					obtain_all_buckets(iterbt->second->root);   //切分字节点多的规则
+				}
+				for (int i = 0; i < rList->list.size(); ++i) {
+					if(rList->mncross[i].size() + rList->mnested[i].size() > splited_max) continue;
+					rule_info a(i, rList);
+					candi_heap.push_back(a);  //DEC.14 cover-set
+				}
 			}
-			//cout<<candi_heap.size()<<" "<<total_memory<<endl;
-			int cnt = 0;
-			while(!candi_heap.empty()){
+		}
+		void obtain_all_buckets(bucket *root){
+			if(root->sonList.empty()) candi_buckets.push_back(cab::cache_bucket(root));
+			else for(auto bson  : root->sonList) obtain_all_buckets(bson);
+		}
+		void cal_mixed_set(bool split) {
+			cout<<"candi_heap: "<<candi_heap.size()<<" candi_bucket: "<<candi_buckets.size()<<endl;
+
+			while(candi_heap.size() && candi_buckets.size()){
 				std::make_heap(candi_heap.begin(), candi_heap.end());
 				std::pop_heap(candi_heap.begin(), candi_heap.end());
-				rule_info next_cache = candi_heap.back(); //下一条要缓存的rule
-				candi_heap.pop_back();
-				if(next_cache.cost + cache_rules.size() + cover_rules_nested.size() + cover_rules_crossed.size() <= total_memory){
-					//cout<<next_cache.idx<<' '<<next_cache.weight<<' '<<next_cache.cost<<endl;
-					//能装下
-					cnt++;
-					cache_rules.insert(next_cache.idx);   //rule进cache
-					for(auto &child_nested : next_cache.children_nested ){ //children_nested进cover_set_nested
-						if(cache_rules.find(child_nested) == cache_rules.end()){//child不在cache中
-							cover_rules_nested.insert(child_nested);  //cover-set
-						}
+				rule_info next_rule = candi_heap.back(); //下一条要缓存的rule
+				if(!split){
+					cache_next_rule(next_rule);
+				}else{
+					//bucket能不能插入
+					std::make_heap(candi_buckets.begin(), candi_buckets.end());
+					std::pop_heap(candi_buckets.begin(), candi_buckets.end());
+					cab::cache_bucket next_bucket = candi_buckets.back(); //下一個要緩存的bucket
+					if((double) next_rule.weight / next_rule.cost > (double)next_bucket.weight / next_bucket.cost){
+						cache_next_rule(next_rule);
+					}else{
+						cache_next_bucket(next_bucket);
 					}
-					for(auto &child_crossed : next_cache.children_crossed ){ //children_nested进cover_set_crossed
-						if(cache_rules.find(child_crossed) == cache_rules.end()){//child不在cache中
-							cover_rules_crossed.insert(child_crossed);  //cover-set
-						}
-					}
-
-					//如果要添加的规则曾经作为cover-set，则在cover-set中删除
-					auto finditer = cover_rules_nested.find(next_cache.idx);
-					if(finditer != cover_rules_nested.end()) cover_rules_nested.erase(finditer);
-					finditer = cover_rules_crossed.find(next_cache.idx);
-					if(finditer != cover_rules_crossed.end()) cover_rules_crossed.erase(finditer);
-
-					//更新影响的parents
-					vector<rule_info> associ_rules;
-					for(auto canditer = candi_heap.begin(); canditer != candi_heap.end();){
-						if(canditer->idx == next_cache.idx){
-							canditer++;
-							continue;
-						}
-						if(next_cache.parents_nested.find(canditer->idx) != next_cache.parents_nested.end() ||
-								next_cache.parents_crossed.find(canditer->idx) != next_cache.parents_crossed.end()){ //属于next_cache的父亲
-							rule_info parent = *canditer;
-							parent.cost--;
-							associ_rules.push_back(parent);
-							canditer = candi_heap.erase(canditer);
-						}else{
-							canditer++;
-						}
-					}
-					for(auto x : associ_rules) candi_heap.push_back(x);
 				}
+			}
+			while(candi_heap.size()){
+				std::make_heap(candi_heap.begin(), candi_heap.end());
+				std::pop_heap(candi_heap.begin(), candi_heap.end());
+				rule_info next_rule = candi_heap.back(); //下一条要缓存的rule
+				cache_next_rule(next_rule);
+			}
+			while(candi_buckets.size()){
+				std::make_heap(candi_buckets.begin(), candi_buckets.end());
+				std::pop_heap(candi_buckets.begin(), candi_buckets.end());
+				cab::cache_bucket next_bucket = candi_buckets.back(); //下一個要緩存的bucket
+				cache_next_bucket(next_bucket);
 			}
 			//cout<<cnt<<endl;
 		}
+		void cache_next_rule(rule_info &next_cache){
+			candi_heap.pop_back();
+			if(next_cache.cost + cache_rules.size() + cover_rules_nested.size() + cover_rules_crossed.size() + cache_buckets.size() > total_memory) return;
+			//cout<<next_cache.idx<<' '<<next_cache.weight<<' '<<next_cache.cost<<endl;
+			//能装下
+			cache_rules.insert(next_cache.idx);   //rule进cache
+			for(auto &child_nested : next_cache.children_nested ){ //children_nested进cover_set_nested
+				if(cache_rules.find(child_nested) == cache_rules.end()){//child不在cache中
+					cover_rules_nested.insert(child_nested);  //cover-set
+				}
+			}
+			for(auto &child_crossed : next_cache.children_crossed ){ //children_nested进cover_set_crossed
+				if(cache_rules.find(child_crossed) == cache_rules.end()){//child不在cache中
+					cover_rules_crossed.insert(child_crossed);  //cover-set
+				}
+			}
 
+			//如果要添加的规则曾经作为cover-set，则在cover-set中删除
+			auto finditer = cover_rules_nested.find(next_cache.idx);
+			if(finditer != cover_rules_nested.end()) cover_rules_nested.erase(finditer);
+			finditer = cover_rules_crossed.find(next_cache.idx);
+			if(finditer != cover_rules_crossed.end()) cover_rules_crossed.erase(finditer);
+
+			//更新影响的parents
+			vector<rule_info> associ_rules;
+			for(auto canditer = candi_heap.begin(); canditer != candi_heap.end();){
+				if(canditer->idx == next_cache.idx){
+					canditer++;
+					continue;
+				}
+				if(next_cache.parents_nested.find(canditer->idx) != next_cache.parents_nested.end() ||
+					next_cache.parents_crossed.find(canditer->idx) != next_cache.parents_crossed.end()){ //属于next_cache的父亲
+					rule_info parent = *canditer;
+					parent.cost--;
+					associ_rules.push_back(parent);
+					canditer = candi_heap.erase(canditer);
+				}else{
+					canditer++;
+				}
+			}
+			for(auto x : associ_rules) candi_heap.push_back(x);
+		}
+
+		void cache_next_bucket(cab::cache_bucket next_cache){
+			candi_buckets.pop_back();
+			if(next_cache.cost + cache_rules.size() + cover_rules_nested.size() + cover_rules_crossed.size() + cache_buckets.size() > total_memory) return;
+			//能装下
+			//cout<<(double)next_cache.weight/next_cache.cost<<" "<<next_cache.cost<<endl;
+			cache_buckets.push_back(next_cache); //bucket进buckets table
+			for(auto rule : next_cache.related_rules){
+				cache_rules.insert(rule); //rule进rules table
+				for(auto iterbucket = candi_buckets.begin(); iterbucket != candi_buckets.end(); iterbucket++){
+					auto deletediter = iterbucket->related_rules.find(rule);
+					if(deletediter != iterbucket->related_rules.end()) iterbucket->related_rules.erase(deletediter);
+				}
+			}
+		}
 		int cal_cover_table_weight(string trace){
 			int cover_weight = 0;
 			ifstream file;
@@ -164,6 +226,8 @@ namespace mycache{
 			for(auto x : overlapped_rules) cout<<x<<" ";
 			return cover_weight;
 		}
+
+		//test function
 	};
 }
 #endif

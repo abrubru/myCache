@@ -34,7 +34,7 @@ class bucket_tree {
 
   public:
     bucket_tree();
-    bucket_tree(rule_list &, uint32_t, bool test_bed = false, size_t = 0);
+    bucket_tree(rule_list &, uint32_t, bool test_bed = false, size_t = 0, int = -1);
     ~bucket_tree();
 
     std::pair<bucket *, int> search_bucket(const addr_5tup &, bucket* ) const;
@@ -73,7 +73,7 @@ class bucket_tree {
 
   public:
     //proactive
-    void obtain_bucket_weight(const string & tracefile_str);
+    void obtain_bucket_weight(const string & tracefile_str, int ruleId = -1);
 
 };
 

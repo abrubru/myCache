@@ -62,8 +62,8 @@ void Solutions::CAB(int memory, rule_list * rL, int weight, string trace){
 void Solutions::myCache(int memory, rule_list * rL, int weight, string trace){
 	cout<<endl<<"					MyCache :"<<endl;
 	int cache_weight = 0;
-	mycache::mixed_set my_cache(memory, rL);
-	my_cache.cal_mixed_set();   //计算proactive_cache
+	mycache::mixed_set my_cache(memory, rL, true, trace);
+	my_cache.cal_mixed_set(true);   //计算proactive_cache
 	int cover_weight = my_cache.cal_cover_table_weight(trace);//计算cover_set table中可表征的流量
 	cout<<"rules table:  "<<my_cache.cache_rules.size()<<endl;
 	cout<<"cover-set nested table: "<<my_cache.cover_rules_nested.size()<<'	'<<"cover-set crossed table: "<<my_cache.cover_rules_crossed.size()<<endl;
