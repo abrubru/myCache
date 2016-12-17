@@ -17,7 +17,9 @@ class p_rule {
     range_addr portpair[2];
     bool proto;
     bool hit;
-    int weight;
+    int weight; //真正的流量
+    int cross_weight; //落在规则上但没有落入nest的流量
+    int squre; //覆盖的区域大小
 
   public:
     inline p_rule();
@@ -171,15 +173,17 @@ inline bool p_rule::dep_rule(const p_rule & rl) const { // check whether a rule 
     return true;
 }
 
-inline bool p_rule::packet_hit(const addr_5tup & packet) const { // check whehter a rule is hit.
+inline bool p_rule::packet_hit(const addr_5tup & packet) const { // check whehter a rule is hit. //只考虑2维
     if (!hostpair[0].hit(packet.addrs[0]))
         return false;
     if (!hostpair[1].hit(packet.addrs[1]))
         return false;
+    /*
     if (!portpair[0].hit(packet.addrs[2]))
         return false;
     if (!portpair[1].hit(packet.addrs[3]))
         return false;
+    */
     // ignore proto check
     return true;
 }
@@ -280,7 +284,7 @@ inline b_rule::b_rule(const string & rule_str) { // construct from string
 /* member funcs
  */
 inline bool b_rule::packet_hit(const addr_5tup & packet) const { // check packet hit a bucket
-    for (uint32_t i = 0; i < 4; i++) {
+    for (uint32_t i = 0; i < 2; i++) { //只考虑2维
         if (!addrs[i].hit(packet.addrs[i]))
             return false;
     }
@@ -289,14 +293,16 @@ inline bool b_rule::packet_hit(const addr_5tup & packet) const { // check packet
 }
 
 inline bool b_rule::match_rule(const p_rule & rule) const { // check whether a policy rule is in bucket
-    if (!rule.hostpair[0].match(addrs[0]))
+    if (!rule.hostpair[0].match(addrs[0])) //只考虑2维
         return false;
     if (!rule.hostpair[1].match(addrs[1]))
         return false;
+   /*
     if (!rule.portpair[0].match(addrs[2]))
         return false;
     if (!rule.portpair[1].match(addrs[3]))
         return false;
+   */
     return true;
 }
 

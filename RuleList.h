@@ -11,7 +11,8 @@
 
 class rule_list {
 public:
-    std::vector<p_rule> list;                                       //ruleset?
+	int depth;                                                             //dag的深度
+    std::vector<p_rule> list;                                       //ruleset
 
     std::vector<uint32_t> node;
     std::vector<std::set<uint32_t> > mnested;         //正向边  parent(low)--> child(high)
@@ -47,11 +48,18 @@ public:
     void obtain_cover();  //duck
     int obtain_weight(string trace); //duck
     int test_trace(string trace); //duck
+    void trace_shape(string trace);//duck
+    void test_large_rule(int);
+    void get_depth();
+    int get_each_depth(int, vector<int>&);
 
     void clearHitFlag();
 
     void rule_dep_analysis();
     void print(const std::string &);
-    void print_info();
+    void test_rulelist_info(string trace = "");
+
+    //have node idea DEC.17
+    void select_optimal_rules(int total_memory);
 };
 #endif

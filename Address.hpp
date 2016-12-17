@@ -115,6 +115,7 @@ public:
     inline addr_5tup(const std::string &, double);
 
     inline void copy_header(const addr_5tup &);
+    inline bool operator<(const addr_5tup &) const;
     inline bool operator==(const addr_5tup &) const;
     inline friend uint32_t hash_value(addr_5tup const &);
 
@@ -273,6 +274,14 @@ inline void addr_5tup::copy_header(const addr_5tup & ad) {
     for (uint32_t i = 0; i < 4; i++)
         addrs[i] = ad.addrs[i];
     proto = ad.proto;
+}
+
+inline bool addr_5tup::operator<(const addr_5tup & rhs) const {
+    for (uint32_t i = 0; i < 4; i++) {
+        if (addrs[i] != rhs.addrs[i])
+            return addrs[i] < rhs.addrs[i];
+    }
+    return false;
 }
 
 inline bool addr_5tup::operator==(const addr_5tup & rhs) const {

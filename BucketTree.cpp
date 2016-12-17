@@ -15,21 +15,23 @@ bucket_tree::bucket_tree() {
     thres_soft = 0;
     tree_depth = 0;
 }
-bucket_tree::bucket_tree(rule_list & rL, uint32_t thr, bool test_bed, size_t pa_no, int i ) {
+bucket_tree::bucket_tree(rule_list & rL, uint32_t thr, bool test_bed, size_t pa_no, int ii, vector<bool> deleted_rules ) {
     thres_hard = thr;
     thres_soft = thr*2;
     rList = &rL;
     root = new bucket(); // full address space
-    if(i == -1){
+    if(ii == -1){
 		for (uint32_t i = 0; i < rL.list.size(); i++)
 			root->related_rules.insert(root->related_rules.end(), i);
+    }else if(ii == -2){
+    	for (uint32_t i = 0; i < rL.list.size(); i++)
+    		if(!deleted_rules[i]) root->related_rules.insert(root->related_rules.end(), i);
     }else{
-    	b_rule b = rL.list[i].cast_to_bRule();
+    	b_rule b = rL.list[ii].cast_to_bRule();
     	for(int i = 0; i < 4; i++) root->addrs[i] = b.addrs[i];
-    	cout<<"crossed: "<<rL.mncross[i].size()<<"nested: "<<rL.mnested[i].size()<<endl;
-    	for (auto x : rL.children[i])
+    	for (auto x : rL.children[ii])
     		root->related_rules.insert(root->related_rules.end(), x);
-    	root->related_rules.push_back(i);//把自己装进去
+    	root->related_rules.push_back(ii);//把自己装进去
     }
 
     gen_candi_split(test_bed);
@@ -597,7 +599,7 @@ void bucket_tree::search_test(const string & tracefile_str) {
 }
 
 //proactive DEC.19 duck
-void bucket_tree::obtain_bucket_weight(const string & tracefile_str, int ruleId) {
+void bucket_tree::obtain_bucket_weight(const string & tracefile_str, int ruleId, int splited_max) {
 	ifstream file;
 	file.open(tracefile_str.c_str());
 	string sLine = "";
@@ -605,10 +607,33 @@ void bucket_tree::obtain_bucket_weight(const string & tracefile_str, int ruleId)
 	while (!file.eof()) {
 		addr_5tup packet(sLine, false);
 		getline(file, sLine);
-		if(ruleId != -1 && !rList->list[ruleId].packet_hit(packet)) continue;  //不匹配原规则直接return
+		/*
+		 * A
+		 */
+
+		if(ruleId != -1 &&/* !rList->list[ruleId].packet_hit(packet)*/rList->linear_search(packet) != ruleId) continue;  //不匹配原规则直接return
 		auto result = search_bucket(packet, root);
-		if(result.second != -1)
-			result.first->weight++;
+		if(result.second == -1) cout<<"fault"<<endl;
+		if(result.second != -1) //去掉最上层的节点
+			if(ruleId == -1){
+				result.first->weight++;
+			}
+			else{
+				int i = 0;
+				for(; i < ruleId; i++) if(rList->children[i].size() > splited_max && rList->list[i].packet_hit(packet))break;
+				if(i != ruleId) continue;
+				int tmpId = rList->linear_search(packet) ;
+				if(tmpId == ruleId || rList->mncross[ruleId].find(tmpId ) != rList->mncross[ruleId].end()) result.first->weight++;//字节点切分，只有落在crossed部分才有流量
+			}
+
+		/*
+		 * B
+		 */
+		/*
+		if(ruleId != -1 && rList->linear_search(packet) != ruleId) continue;  //不匹配原规则直接return
+		auto result = search_bucket(packet, root);
+		if(result.second != -1) result.first->weight++;
+		*/
 	}
 	file.close();
 }

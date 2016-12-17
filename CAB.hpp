@@ -5,9 +5,9 @@
 #include "BucketTree.h"
 
 namespace cab{
-
 	class cache_bucket{
 	public:
+		uint32_t idx; //所属的rule
 		bucket* cBucket; //bucket
 		std::set<uint32_t> related_rules; //bucket中的related_rules是vector，不好删除
 		int weight;     //命中该bucket的数据包
@@ -16,7 +16,8 @@ namespace cab{
 			return (double)weight / cost < (double)another.weight / another.cost;
 		}
 	public:
-		cache_bucket(bucket *b){
+		cache_bucket(bucket *b, int id = -1){
+			idx = id;
 			cBucket = b;
 			for(auto x : b->related_rules) related_rules.insert(x);
 			weight = b->weight;
@@ -56,7 +57,10 @@ namespace cab{
 					cache_rules.insert(rule); //rule进rules table
 					for(auto iterbucket = candi_buckets.begin(); iterbucket != candi_buckets.end(); iterbucket++){
 						auto deletediter = iterbucket->related_rules.find(rule);
-						if(deletediter != iterbucket->related_rules.end()) iterbucket->related_rules.erase(deletediter);
+						if(deletediter != iterbucket->related_rules.end()){
+							iterbucket->related_rules.erase(deletediter); //删除已经放进cache的规则
+							iterbucket->cost--;    //cost--
+						}
 					}
 				}
 			}
